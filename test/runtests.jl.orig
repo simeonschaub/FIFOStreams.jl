@@ -1,0 +1,9 @@
+<<<<<<< HEAD
+using FIFOStreams
+using Test
+
+@testset "FIFOStreams.jl" begin
+    # Write your tests here.
+end
+=======
+>>>>>>> 8a719de... wip

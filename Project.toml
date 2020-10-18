@@ -8,6 +8,7 @@ julia = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+diffutils_jll = "11f5bf75-d780-529b-b59b-a3a04c974070"
 
 [targets]
-test = ["Test"]
+test = ["Test", "diffutils_jll"]
