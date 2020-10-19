@@ -18,4 +18,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/simeonschaub/FIFOStreams.jl",
+    devbranch="main",
 )
