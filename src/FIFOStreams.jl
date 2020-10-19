@@ -41,24 +41,40 @@ abstract type AbstractFIFOStream <: IO end
 
 abstract type FIFOStream <: AbstractFIFOStream end
 
+function _parse_rw(read, write)
+    write != read || throw(ArgumentError(
+        "`Invalid arguments `write=$write, read=$read`. Can only open FIFOStream for" *
+        "either write or read."
+    ))
+    return (UInt8(read) << 1) | UInt8(write)
+end
+function _deparse_rw(rw)
+    @assert rw < 4
+    return (; read = (rw >> 1) % Bool, write = rw % Bool)
+end
+
 mutable struct UnixFIFOStream <: FIFOStream
     path::String
+    rw::UInt8
     cleanup::Bool
-    in::IOStream
+    iostream::IOStream
     attached_process::AbstractPipe
-    function UnixFIFOStream(path::String=mktempfifo(); cleanup=true)
+    function UnixFIFOStream(path::String=mktempfifo(); read=false, write=!read, cleanup=true)
         Sys.isunix() || error("`UnixFIFOStream` can't be used on non-Unix systems.")
-        return new(path, cleanup)
+        return new(path, _parse_rw(read, write), cleanup)
     end
 end
 
 mutable struct FallbackFIFOStream <: FIFOStream
     path::String
+    rw::UInt8
     cleanup::Bool
-    in::IOStream
+    iostream::IOStream
     attached_cmd::AbstractCmd
     attached_stdios::Vector{Any}
-    FallbackFIFOStream(path::String=_mktemp(); cleanup=true) = new(path, cleanup)
+    function FallbackFIFOStream(path::String=_mktemp(); read=false, write=!read, cleanup=true)
+        return new(path, _parse_rw(read, write), cleanup)
+    end
 end
 
 if Sys.isunix()
@@ -67,8 +83,11 @@ else
     FIFOStream(args...; kwargs...) = FallbackFIFOStream(args...; kwargs...)
 end
 
-Base.write(s::FIFOStream, x::UInt8) = write(s.in, x)
-Base.unsafe_write(s::FIFOStream, p::Ptr{UInt8}, n::UInt) = unsafe_write(s.in, p, n)
+Base.write(s::FIFOStream, x::UInt8) = write(s.ios_tream, x)
+Base.unsafe_write(s::FIFOStream, p::Ptr{UInt8}, n::UInt) = unsafe_write(s.iostream, p, n)
+
+Base.read(s::FIFOStream) = read(s.iostream)
+Base.unsafe_read(s::FIFOStream, p::Ptr{UInt8}, n::UInt) = unsafe_read(s.iostream, p, n)
 
 is_cmd_attached(s::UnixFIFOStream) = isdefined(s, :attached_process)
 is_cmd_attached(s::FallbackFIFOStream) = isdefined(s, :attached_cmd)
@@ -80,13 +99,17 @@ end
 function _init_fifo_cmd(s::FallbackFIFOStream, cmd::AbstractCmd, stdios::Vector{Any})
     s.attached_cmd = cmd
     s.attached_stdios = stdios
+    if _deparse_rw(s.rw).read
+        process = Base._spawn(cmd, stdios)
+        success(process) || Base.pipeline_error(process)
+    end
     nothing
 end
 
 function attach(s::FIFOStream)
     isdefined(s, :in) &&
         throw(IOError("FIFOStream already has an IOStream attached.", 0))
-    s.in = open(s.path, "w")
+    s.iostream = open(s.path; _deparse_rw(s.rw)...)
     return s
 end
 function attach(s::FIFOStream, cmd::AbstractCmd, stdios::Redirectable...)
@@ -102,16 +125,22 @@ path(s::FIFOStream) = s.path
 Base.rm(s::FIFOStream) = rm(path(s))
 
 _fifo_process(s::UnixFIFOStream) = s.attached_process
-_fifo_process(s::FallbackFIFOStream) = Base._spawn(s.attached_cmd, s.attached_stdios)
+function _fifo_process(s::FallbackFIFOStream)
+    if _deparse_rw(s.rw).write
+        return Base._spawn(s.attached_cmd, s.attached_stdios)
+    else
+        return nothing
+    end
+end
 
 function Base.close(s::FIFOStream; rm=s.cleanup)
-    close(s.in)
+    close(s.iostream)
     if !is_cmd_attached(s)
         rm && Base.rm(s)
         return
     end
-    process = _fifo_process(s)::Process
-    succ = success(process)
+    process = _fifo_process(s)::Union{Process,Nothing}
+    succ = process !== nothing ? success(process) : true
     rm && Base.rm(s)
     succ || Base.pipeline_error(process)
     nothing
