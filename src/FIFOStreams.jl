@@ -83,7 +83,7 @@ else
     FIFOStream(args...; kwargs...) = FallbackFIFOStream(args...; kwargs...)
 end
 
-Base.write(s::FIFOStream, x::UInt8) = write(s.ios_tream, x)
+Base.write(s::FIFOStream, x::UInt8) = write(s.iostream, x)
 Base.unsafe_write(s::FIFOStream, p::Ptr{UInt8}, n::UInt) = unsafe_write(s.iostream, p, n)
 
 Base.read(s::FIFOStream) = read(s.iostream)
