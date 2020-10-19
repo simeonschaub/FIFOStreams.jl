@@ -1,5 +1,8 @@
 using FIFOStreams
-using Test, diffutils_jll
+using Test
+
+@static if VERSION >= v"1.3"
+using diffutils_jll
 
 @testset "diff" begin
     a = read(joinpath(@__DIR__, "a"), String)
@@ -17,4 +20,5 @@ using Test, diffutils_jll
         out = String(take!(io))
         @test out == diff_ab
     end
+end
 end
