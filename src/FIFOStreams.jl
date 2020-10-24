@@ -18,15 +18,28 @@ function mkfifo(path, mode)
     return path
 end
 
-function mktempfifo(parent=tempdir(); mode=0o600, cleanup=true)
-    return mkfifo(tempname(parent, cleanup=cleanup), mode)
-end
+if VERSION < v"1.5"
+    function mktempfifo(; mode=0o600)
+        return mkfifo(tempname(), mode)
+    end
 
-function _mktemp(parent=tempdir(); mode=0o600, cleanup=true)
-    path = tempname(parent, cleanup=cleanup)
-    touch(path)
-    chmod(path, mode)
-    return path
+    function _mktemp(; mode=0o600)
+        path = tempname()
+        touch(path)
+        chmod(path, mode)
+        return path
+    end
+else
+    function mktempfifo(parent=tempdir(); mode=0o600, cleanup=true)
+        return mkfifo(tempname(parent, cleanup=cleanup), mode)
+    end
+
+    function _mktemp(parent=tempdir(); mode=0o600, cleanup=true)
+        path = tempname(parent, cleanup=cleanup)
+        touch(path)
+        chmod(path, mode)
+        return path
+    end
 end
 
 #####
