@@ -39,6 +39,44 @@ abstract type AbstractFIFOStream <: IO end
 ##### FIFOStream
 #####
 
+@doc raw"""
+    FIFOStream(path::String=_mktemp(); read=false, write=!read, cleanup=true)
+      -> UnixFIFOStream (on Unix) / FallbackFIFOStream (on non-Unix)
+
+An abstract type for either writing to, or reading from external commands through Unix
+pipes or temporary files. All subtypes `T<:FIFOStream` implement the following interface:
+
+1. Create stream `s`, optionally from specific path: `s = T([path::String]; opts...)`
+2. Attach an external command that reads from / writes to that path:
+   ```attach(s, `foo $(path(s))`, [stdios...])```
+3. Write to / read from the stream, just like any other `IO` object
+3. Close the stream with `close(s; rm=s.cleanup)`
+
+# Examples
+```jldoctest
+julia> s = FIFOStream();
+
+julia> io = IOBuffer();
+
+julia> attach(s, pipeline(`cat $(path(s))`, stdout=io));
+
+julia> print(s, "Hello, World!")
+
+julia> close(s)
+
+julia> Text(String(take!(io)))
+Hello, World!
+
+julia> s = FIFOStream(read=true);
+
+julia> attach(s, `bash -c "echo 'Hello, World!' > $(path(s))"`);
+
+julia> read(s, String)
+"Hello, World!\n"
+
+julia> close(s)
+```
+"""
 abstract type FIFOStream <: AbstractFIFOStream end
 
 function _parse_rw(read, write)
@@ -107,7 +145,7 @@ function _init_fifo_cmd(s::FallbackFIFOStream, cmd::AbstractCmd, stdios::Vector{
 end
 
 function attach(s::FIFOStream)
-    isdefined(s, :in) &&
+    isdefined(s, :iostream) &&
         throw(IOError("FIFOStream already has an IOStream attached.", 0))
     s.iostream = open(s.path; _deparse_rw(s.rw)...)
     return s
@@ -142,7 +180,7 @@ function Base.close(s::FIFOStream; rm=s.cleanup)
     process = _fifo_process(s)::Union{Process,Nothing}
     succ = process !== nothing ? success(process) : true
     rm && Base.rm(s)
-    succ || Base.pipeline_error(process)
+    succ || Base.pipeline_error(process::Process)
     nothing
 end
 
@@ -155,13 +193,39 @@ struct FIFOStreamCollection <: AbstractFIFOStream
     children::Vector{AbstractFIFOStream}
 end
 
-function FIFOStreamCollection(n::Integer)
+@doc raw"""
+    FIFOStreamCollection([T::Type{<:FIFOStream}, ]n::Integer; opts...)
+
+A collection of multiple `FIFOStream`s, for dealing with multiple streams conveniently.
+
+# Examples
+```jldoctest
+julia> s = FIFOStreamCollection(2);
+
+julia> io = IOBuffer();
+
+julia> attach(s, pipeline(ignorestatus(`diff --side-by-side $(path(s, 1)) $(path(s, 2))`); stdout=io));
+
+julia> s1, s2 = s;
+
+julia> show(s1, code_lowered(cos, Tuple{Float64}))
+
+julia> show(s2, code_lowered(sin, Tuple{Float64}))
+
+julia> close(s)
+
+julia> # Text(String(take!(io))) # uncomment to show diff
+```
+"""
+function FIFOStreamCollection end
+function FIFOStreamCollection(T::Type{<:FIFOStream}, n::Integer; opts...)
     n >= 1 || throw(ArgumentError("Number of streams has to be >= 1."))
     return FIFOStreamCollection(
-        FIFOStream(),
-        AbstractFIFOStream[FIFOStream() for _ in 1:n-1],
+        T(; opts...),
+        AbstractFIFOStream[T(; opts...) for _ in 1:n-1],
     )
 end
+FIFOStreamCollection(n::Integer; opts...) = FIFOStreamCollection(FIFOStream, n; opts...)
 
 function attach(s::FIFOStreamCollection, args...)
     attach(s.main, args...)

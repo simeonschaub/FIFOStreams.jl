@@ -1,6 +1,8 @@
 using FIFOStreams
 using Documenter
 
+DocMeta.setdocmeta!(FIFOStreams, :DocTestSetup, :(using FIFOStreams); recursive=true)
+
 makedocs(;
     modules=[FIFOStreams],
     authors="Simeon Schaub <simeondavidschaub99@gmail.com> and contributors",
