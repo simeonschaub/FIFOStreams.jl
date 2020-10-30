@@ -61,7 +61,7 @@ pipes or temporary files. All subtypes `T<:FIFOStream` implement the following i
 
 1. Create stream `s`, optionally from specific path: `s = T([path::String]; opts...)`
 2. Attach an external command that reads from / writes to that path:
-   ```attach(s, `foo $(path(s))`, [stdios...])```
+   ```attach(s, `foo $(path(s))`[, stdios...])```
 3. Write to / read from the stream, just like any other `IO` object
 3. Close the stream with `close(s; rm=s.cleanup)`
 
