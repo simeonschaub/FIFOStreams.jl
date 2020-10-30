@@ -11,10 +11,9 @@ a = read(joinpath(@__DIR__, "a"), String)
 b = read(joinpath(@__DIR__, "b"), String)
 diff_ab = read(joinpath(@__DIR__, "diff_ab"), String)
 
-@testset "diffutils - $T" for T in [
-    (Sys.isunix() ? [UnixFIFOStream] : [])...,
-    FallbackFIFOStream,
-]
+for T in [(Sys.isunix() ? [UnixFIFOStream] : [])..., FallbackFIFOStream]
+
+@testset "diffutils - $T" begin
     _diff() do diff
         s = FIFOStreamCollection(T, 2)
         io = IOBuffer()
@@ -30,4 +29,20 @@ diff_ab = read(joinpath(@__DIR__, "diff_ab"), String)
             @test out == diff_ab
         end
     end
+end
+
+# doctests are broken on Windows, let's not bother
+Sys.iswindows() && continue
+
+using Documenter
+DocMeta.setdocmeta!(
+    FIFOStreams,
+    :DocTestSetup,
+    :(using FIFOStreams; const FIFOStream = $T);
+    recursive=true,
+)
+@testset "doctests - $T" begin
+    doctest(FIFOStreams)
+end
+
 end

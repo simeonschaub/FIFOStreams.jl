@@ -7,8 +7,9 @@ version = "0.1.0"
 julia = "1.1"
 
 [extras]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 diffutils_jll = "11f5bf75-d780-529b-b59b-a3a04c974070"
 
 [targets]
-test = ["Test", "diffutils_jll"]
+test = ["Test", "diffutils_jll", "Documenter"]
