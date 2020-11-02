@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · FIFOStreams.jl</title><link rel="canonical" href="https://simeonschaub.github.io/FIFOStreams.jl/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">FIFOStreams.jl</span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/simeonschaub/FIFOStreams.jl/blob/master/docs/src/index.md#L" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="FIFOStreams"><a class="docs-heading-anchor" href="#FIFOStreams">FIFOStreams</a><a id="FIFOStreams-1"></a><a class="docs-heading-anchor-permalink" href="#FIFOStreams" title="Permalink"></a></h1><ul><li><a href="#FIFOStreams.FIFOStream"><code>FIFOStreams.FIFOStream</code></a></li><li><a href="#FIFOStreams.FIFOStreamCollection"><code>FIFOStreams.FIFOStreamCollection</code></a></li></ul><article class="docstring"><header><a class="docstring-binding" id="FIFOStreams.FIFOStream" href="#FIFOStreams.FIFOStream"><code>FIFOStreams.FIFOStream</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia">FIFOStream(path::String=_mktemp(); read=false, write=!read, cleanup=true)
+  -&gt; UnixFIFOStream (on Unix) / FallbackFIFOStream (on non-Unix)</code></pre><p>An abstract type for either writing to, or reading from external commands through Unix pipes or temporary files. All subtypes <code>T&lt;:FIFOStream</code> implement the following interface:</p><ol><li>Create stream <code>s</code>, optionally from specific path: <code>s = T([path::String]; opts...)</code></li><li>Attach an external command that reads from / writes to that path: <code>attach(s, `foo $(path(s))`[, stdios...])</code></li><li>Write to / read from the stream, just like any other <code>IO</code> object</li><li>Close the stream with <code>close(s; rm=s.cleanup)</code></li></ol><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; s = FIFOStream();
+
+julia&gt; io = IOBuffer();
+
+julia&gt; attach(s, pipeline(`cat $(path(s))`, stdout=io));
+
+julia&gt; print(s, &quot;Hello, World!&quot;)
+
+julia&gt; close(s)
+
+julia&gt; Text(String(take!(io)))
+Hello, World!
+
+julia&gt; s = FIFOStream(read=true);
+
+julia&gt; attach(s, `bash -c &quot;echo &#39;Hello, World!&#39; &gt; $(path(s))&quot;`);
+
+julia&gt; read(s, String)
+&quot;Hello, World!\n&quot;
+
+julia&gt; close(s)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/simeonschaub/FIFOStreams.jl/blob/cf01674295dc748a361c63056d9ac70eb7668a9b/src/FIFOStreams.jl#LL55-L92">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="FIFOStreams.FIFOStreamCollection" href="#FIFOStreams.FIFOStreamCollection"><code>FIFOStreams.FIFOStreamCollection</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia">FIFOStreamCollection([T::Type{&lt;:FIFOStream}, ]n::Integer; opts...)</code></pre><p>A collection of multiple <code>FIFOStream</code>s, for dealing with multiple streams conveniently.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl">julia&gt; s = FIFOStreamCollection(2);
+
+julia&gt; io = IOBuffer();
+
+julia&gt; attach(s, pipeline(ignorestatus(`diff --side-by-side $(path(s, 1)) $(path(s, 2))`); stdout=io));
+
+julia&gt; s1, s2 = s;
+
+julia&gt; show(s1, code_lowered(cos, Tuple{Float64}))
+
+julia&gt; show(s2, code_lowered(sin, Tuple{Float64}))
+
+julia&gt; close(s)
+
+julia&gt; # Text(String(take!(io))) # uncomment to show diff</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/simeonschaub/FIFOStreams.jl/blob/cf01674295dc748a361c63056d9ac70eb7668a9b/src/FIFOStreams.jl#LL209-L232">source</a></section></article></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 2 November 2020 21:01">Monday 2 November 2020</span>. Using Julia version 1.5.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
