@@ -185,7 +185,7 @@ function _fifo_process(s::FallbackFIFOStream)
 end
 
 function Base.close(s::FIFOStream; rm=s.cleanup)
-    close(s.iostream)
+    isdefined(s, :iostream) && close(s.iostream)
     if !is_cmd_attached(s)
         rm && Base.rm(s)
         return

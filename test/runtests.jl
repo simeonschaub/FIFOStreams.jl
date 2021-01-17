@@ -31,6 +31,10 @@ for T in [(Sys.isunix() ? [UnixFIFOStream] : [])..., FallbackFIFOStream]
     end
 end
 
+s = FIFOStream()
+# just test that this doesn't error
+@test close(s) === nothing
+
 # doctests are broken on Windows, let's not bother
 Sys.iswindows() && continue
 
