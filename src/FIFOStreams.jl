@@ -268,4 +268,13 @@ end
 
 path(s::FIFOStreamCollection, i::Integer) = path(i == 1 ? s.main : s.children[i-1])
 
+function __init__()
+    # work around https://github.com/JuliaLang/julia/issues/39311
+    if Sys.iswindows()
+        sprint() do io
+            run(pipeline(`echo foo`; stdout=io))
+        end
+    end
+end
+
 end

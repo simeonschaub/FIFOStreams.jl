@@ -5,8 +5,6 @@
 [![Build Status](https://github.com/simeonschaub/FIFOStreams.jl/workflows/CI/badge.svg)](https://github.com/simeonschaub/FIFOStreams.jl/actions)
 [![Coverage](https://codecov.io/gh/simeonschaub/FIFOStreams.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/simeonschaub/FIFOStreams.jl)
 
-**Disclaimer:** FIFOStreams currently seems to be broken on Windows for Julia 1.5, so it is recommended to use at least Julia 1.6, if you are on Windows.
-
 ## Example
 
 For more details, please read [the docs](https://simeonschaub.github.io/FIFOStreams.jl/dev).

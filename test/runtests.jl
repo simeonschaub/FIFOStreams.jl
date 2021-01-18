@@ -23,11 +23,7 @@ for T in [(Sys.isunix() ? [UnixFIFOStream] : [])..., FallbackFIFOStream]
         print(s2, b)
         close(s)
         out = String(take!(io))
-        if Sys.iswindows() && v"1.5" <= VERSION < v"1.6-DEV"
-            @test_broken out == diff_ab
-        else
-            @test out == diff_ab
-        end
+        @test out == diff_ab
     end
 end
 
