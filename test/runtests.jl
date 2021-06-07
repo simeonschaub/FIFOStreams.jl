@@ -16,13 +16,14 @@ for T in [(Sys.isunix() ? [UnixFIFOStream] : [])..., FallbackFIFOStream]
 @testset "diffutils - $T" begin
     _diff() do diff
         s = FIFOStreamCollection(T, 2)
-        io = IOBuffer()
+        io = Base.BufferStream()
         attach(s, pipeline(ignorestatus(`$diff $(path(s, 1)) $(path(s, 2))`); stdout=io))
         s1, s2 = s
         print(s1, a)
         print(s2, b)
         close(s)
-        out = String(take!(io))
+        close(io)
+        out = read(io, String)
         @test out == diff_ab
     end
 end
