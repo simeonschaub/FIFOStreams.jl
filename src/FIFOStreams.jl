@@ -143,11 +143,11 @@ Base.unsafe_read(s::FIFOStream, p::Ptr{UInt8}, n::UInt) = unsafe_read(s.iostream
 is_cmd_attached(s::UnixFIFOStream) = isdefined(s, :attached_process)
 is_cmd_attached(s::FallbackFIFOStream) = isdefined(s, :attached_cmd)
 
-function _init_fifo_cmd(s::UnixFIFOStream, cmd::AbstractCmd, stdios::Vector{Any})
+function _init_fifo_cmd(s::UnixFIFOStream, cmd::AbstractCmd, stdios::Vector{<:Any})
     s.attached_process = Base._spawn(cmd, stdios)
     nothing
 end
-function _init_fifo_cmd(s::FallbackFIFOStream, cmd::AbstractCmd, stdios::Vector{Any})
+function _init_fifo_cmd(s::FallbackFIFOStream, cmd::AbstractCmd, stdios::Vector{<:Any})
     s.attached_cmd = cmd
     s.attached_stdios = stdios
     if _deparse_rw(s.rw).read
