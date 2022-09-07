@@ -1,11 +1,6 @@
 using FIFOStreams
 using Test
-
-@static if VERSION >= v"1.3"
-    using diffutils_jll
-else
-    _diff(f) = Sys.isunix() ? f("diff") : @test_broken false
-end
+using diffutils_jll
 
 a = read(joinpath(@__DIR__, "a"), String)
 b = read(joinpath(@__DIR__, "b"), String)

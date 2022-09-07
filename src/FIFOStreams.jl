@@ -18,28 +18,15 @@ function mkfifo(path, mode)
     return path
 end
 
-if VERSION < v"1.5"
-    function mktempfifo(; mode=0o600)
-        return mkfifo(tempname(), mode)
-    end
+function mktempfifo(parent=tempdir(); mode=0o600, cleanup=true)
+    return mkfifo(tempname(parent, cleanup=cleanup), mode)
+end
 
-    function _mktemp(; mode=0o600)
-        path = tempname()
-        touch(path)
-        chmod(path, mode)
-        return path
-    end
-else
-    function mktempfifo(parent=tempdir(); mode=0o600, cleanup=true)
-        return mkfifo(tempname(parent, cleanup=cleanup), mode)
-    end
-
-    function _mktemp(parent=tempdir(); mode=0o600, cleanup=true)
-        path = tempname(parent, cleanup=cleanup)
-        touch(path)
-        chmod(path, mode)
-        return path
-    end
+function _mktemp(parent=tempdir(); mode=0o600, cleanup=true)
+    path = tempname(parent, cleanup=cleanup)
+    touch(path)
+    chmod(path, mode)
+    return path
 end
 
 #####
@@ -122,7 +109,7 @@ mutable struct FallbackFIFOStream <: FIFOStream
     cleanup::Bool
     iostream::IOStream
     attached_cmd::AbstractCmd
-    attached_stdios::Vector{Any}
+    attached_stdios::Base.SpawnIOs
     function FallbackFIFOStream(path::String=_mktemp(); read=false, write=!read, cleanup=true)
         return new(path, _parse_rw(read, write), cleanup)
     end
@@ -143,11 +130,11 @@ Base.unsafe_read(s::FIFOStream, p::Ptr{UInt8}, n::UInt) = unsafe_read(s.iostream
 is_cmd_attached(s::UnixFIFOStream) = isdefined(s, :attached_process)
 is_cmd_attached(s::FallbackFIFOStream) = isdefined(s, :attached_cmd)
 
-function _init_fifo_cmd(s::UnixFIFOStream, cmd::AbstractCmd, stdios::Vector{Any})
+function _init_fifo_cmd(s::UnixFIFOStream, cmd::AbstractCmd, stdios::Base.SpawnIOs)
     s.attached_process = Base._spawn(cmd, stdios)
     nothing
 end
-function _init_fifo_cmd(s::FallbackFIFOStream, cmd::AbstractCmd, stdios::Vector{Any})
+function _init_fifo_cmd(s::FallbackFIFOStream, cmd::AbstractCmd, stdios::Base.SpawnIOs)
     s.attached_cmd = cmd
     s.attached_stdios = stdios
     if _deparse_rw(s.rw).read
