@@ -109,7 +109,7 @@ mutable struct FallbackFIFOStream <: FIFOStream
     cleanup::Bool
     iostream::IOStream
     attached_cmd::AbstractCmd
-    attached_stdios::Vector{Any}
+    attached_stdios::Base.SpawnIOs
     function FallbackFIFOStream(path::String=_mktemp(); read=false, write=!read, cleanup=true)
         return new(path, _parse_rw(read, write), cleanup)
     end
